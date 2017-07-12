@@ -41,22 +41,72 @@ def get_data():
 	# Empty lists
 	X = []
 	Y = []
+	ac_words = 0
+	ac_nums = 0
 
 	# For every filename, fetch it and do parsing voodoo
 	for file_name in file_names:
 		file_data = open( os.path.join(DATA_DIR, file_name) ).read()
 		file_parsed = xmltodict.parse(file_data)
 
+		texts = file_parsed['arggraph']['edu']
+
+		'''
+			Input Labels.
+			Also find 
+			-> max words in a sentence (ac_words)
+			-> max sentences in one data point (ac_nums)
+		'''
+		x = [ '' for temp in texts ]
+		for text in texts:
+			text_clean = text['#text'][:-1] + text['#text'][-1].replace(',','').replace('.','').replace('!','').replace('?','')
+			x[int(text[u'@id'][1])-1] = text_clean
+			if len(text_clean.split()) > ac_words:
+				ac_words = len(text_clean.split())
+
+		if len(texts) > ac_nums:
+			ac_nums = len(texts)
+
+		X.append(x)
+
+	'''
+		We got the X, and the ac_nums and ac_words. Now to move on to making y.
+	'''
+
+	for file_name in file_names:
+		print file_name
+		file_data = open( os.path.join(DATA_DIR, file_name) ).read()
+		file_parsed = xmltodict.parse(file_data)
+
 		edges = file_parsed['arggraph']['edge']
 		texts = file_parsed['arggraph']['edu']
+
+
+		# '''
+		# 	Input Labels.
+		# 	Also find 
+		# 	-> max words in a sentence (ac_words)
+		# 	-> max sentences in one data point (ac_nums)
+		# '''
+		# x = [ '' for temp in texts ]
+		# for text in texts:
+		# 	text_clean = text['#text'][:-1] + text['#text'][-1].replace(',','').replace('.','').replace('!','').replace('?','')
+		# 	x[int(text[u'@id'][1])-1] = text_clean
+		# 	if len(text_clean.split()) > ac_words:
+		# 		ac_words = len(text_clean.split())
+
+
+		# if len(texts) > ac_nums:
+		# 	ac_nums = len(texts)
+
 
 		'''
 			Output labels
 		'''
 		edges = [ (edge['@id'], edge['@src'], edge['@trg']) for edge in edges ]
+		pprint(edges)
 
-
-		y = np.zeros((len(texts), len(texts)))
+		y = np.zeros((ac_nums, ac_nums))
 		for edge in edges:
 			if edge[1][0] != 'e':
 				src = edge[1]
@@ -71,19 +121,20 @@ def get_data():
 
 				y[int(src[1])-1][int(trg[1])-1] = 1.0
 
+		'''
+			Now, the root AC has the same encoding as that of the padded parts. i.e. 0000000...0.
+			According to the paper, we want it to point it to itself. So let's work on that now :]
+		'''
+		for i in range(len(texts)):
+			if y[i].sum() == 0:
+				y[i][i] = 1
+
+		print y
+		raw_input("poop")
+
 		Y.append(y)
 
-		'''
-			Input Labels
-		'''
-		x = [ '' for temp in texts ]
-		for text in texts:
-			x[int(text[u'@id'][1])-1] = text['#text']
-
-			
-		X.append(x)
-
-	return X,np.asarray(Y)
+	return X, np.asarray(Y), ac_nums, ac_words
 	# return 
 
 
