@@ -84,7 +84,7 @@ def get_data():
 		X.append(x)
 
 	return X
-	return Y
+	return np.asarray(Y)
 
 
 if __name__ == "__main__":
