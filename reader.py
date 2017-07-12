@@ -83,9 +83,11 @@ def get_data():
 			
 		X.append(x)
 
-	return X
-	return np.asarray(Y)
+	return X,np.asarray(Y)
+	# return 
 
 
 if __name__ == "__main__":
-	get_data()
+	x_data,y_data = get_data()
+	print x_data[0]
+	print y_data[0]
