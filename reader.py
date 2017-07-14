@@ -74,7 +74,7 @@ def get_data():
 	'''
 
 	for file_name in file_names:
-		print file_name
+		# print file_name
 		file_data = open( os.path.join(DATA_DIR, file_name) ).read()
 		file_parsed = xmltodict.parse(file_data)
 
@@ -104,7 +104,7 @@ def get_data():
 			Output labels
 		'''
 		edges = [ (edge['@id'], edge['@src'], edge['@trg']) for edge in edges ]
-		pprint(edges)
+		# pprint(edges)
 
 		y = np.zeros((ac_nums, ac_nums))
 		for edge in edges:
@@ -129,8 +129,8 @@ def get_data():
 			if y[i].sum() == 0:
 				y[i][i] = 1
 
-		print y
-		raw_input("poop")
+		# print y
+		# raw_input("poop")
 
 		Y.append(y)
 
