@@ -71,53 +71,32 @@ def get_data():
 
 	'''
 		We got the X, and the ac_nums and ac_words. Now to move on to making y.
+		But first, pad the X :]
 	'''
+	for i in range(len(X)):
+		X[i] = X[i] + [ ''  for temp in range(ac_nums - len(X[i]))]
 
+
+	'''
+		Output Labels
+	'''
 	for file_name in file_names:
-		# print file_name
 		file_data = open( os.path.join(DATA_DIR, file_name) ).read()
 		file_parsed = xmltodict.parse(file_data)
 
 		edges = file_parsed['arggraph']['edge']
 		texts = file_parsed['arggraph']['edu']
 
-
-		# '''
-		# 	Input Labels.
-		# 	Also find 
-		# 	-> max words in a sentence (ac_words)
-		# 	-> max sentences in one data point (ac_nums)
-		# '''
-		# x = [ '' for temp in texts ]
-		# for text in texts:
-		# 	text_clean = text['#text'][:-1] + text['#text'][-1].replace(',','').replace('.','').replace('!','').replace('?','')
-		# 	x[int(text[u'@id'][1])-1] = text_clean
-		# 	if len(text_clean.split()) > ac_words:
-		# 		ac_words = len(text_clean.split())
-
-
-		# if len(texts) > ac_nums:
-		# 	ac_nums = len(texts)
-
-
-		'''
-			Output labels
-		'''
 		edges = [ (edge['@id'], edge['@src'], edge['@trg']) for edge in edges ]
-		# pprint(edges)
 
-		y = np.zeros((ac_nums, ac_nums))
+		y = np.zeros((ac_nums, ac_nums))	#Takes care of padding the y
 		for edge in edges:
 			if edge[1][0] != 'e':
 				src = edge[1]
 				trg = edge[2]
 
-				# print src, trg
-
 				src = resolve(src, edges)
 				trg = resolve(trg, edges)
-
-				# print "\t", src, trg
 
 				y[int(src[1])-1][int(trg[1])-1] = 1.0
 
@@ -129,13 +108,9 @@ def get_data():
 			if y[i].sum() == 0:
 				y[i][i] = 1
 
-		# print y
-		# raw_input("poop")
-
 		Y.append(y)
 
 	return X, np.asarray(Y), ac_nums, ac_words
-	# return 
 
 
 if __name__ == "__main__":
