@@ -18,9 +18,15 @@ import keras.backend as K
 import numpy as np
 from ptrnets import utils
 
+from gensim import models, corpora
+
+
 
 GLOVE_DIR = "/home/gaurav/Downloads/dataset/embeddings/glove.6B"
+WORD2VEC_DIR = "/home/gaurav/Downloads/dataset/20newsGroup/compiled"
 EMBEDDING_DIM = 200
+BS = 10
+
 
 
 
@@ -32,6 +38,8 @@ for line in f:
     coefs = np.asarray(values[1:], dtype='float32')
     embeddings_index[word] = coefs
 f.close()
+
+model_word2vec = models.KeyedVectors.load_word2vec_format(os.path.join(WORD2VEC_DIR,'GoogleNews-vectors-negative300.bin'), binary=True)
 
 
 def sentence_embedding(sentence, embedding_type):
@@ -48,6 +56,16 @@ def sentence_embedding(sentence, embedding_type):
 				embedding = np.zeros(200,dtype=np.float32)
 			sen_embedding = sen_embedding + embedding
 		return sen_embedding
+	elif embedding_type == 'WORD2VEC':
+		sen_embedding = np.zeros(300,dtype=np.float32)
+		for word in sentence:
+			try:
+				embedding = model_word2vec[word]
+			except:
+				embedding = np.zeros(300,dtype=np.float32)
+			sen_embedding = sen_embedding + embedding
+		return sen_embedding		
+			
 	return None	
 
 x, y , ac_num, ac_words = reader.get_data()
@@ -56,7 +74,7 @@ for node in x:
 	node_embedding = []
 	for sent in node:
 		temp_sent = sent.split(" ")
-		sent_embedding = sentence_embedding([temp_value.strip() for temp_value in temp_sent],"GLOVE")
+		sent_embedding = sentence_embedding([temp_value.strip() for temp_value in temp_sent],"WORD2VEC")
 		node_embedding.append(sent_embedding)
 	x_embedding.append(node_embedding)
 x_embedding = np.asarray(x_embedding)
@@ -66,11 +84,26 @@ x_embedding = np.asarray(x_embedding)
 x_train,x_test = x_embedding[:int(x_embedding.shape[0]*.80)],x_embedding[int(x_embedding.shape[0]*.80):]
 y_train,y_test = y[:int(y.shape[0]*.80)],y[int(y.shape[0]*.80):]
 
-models = Pointer(output_dim=10, hidden_dim=200, output_length=10, input_shape=(10, 200), batch_size=1,bidirectional=False)
+
+# x_train = x_train + x_train[0:len(x_train)%BS]
+print len(x_train)%BS 
+print len(y_train)
+print BS-(len(x_train)%BS)
+x_train = np.concatenate([x_train,x_train[0:BS-(len(x_train)%BS)]])
+y_train = np.concatenate([ y_train , y_train[0:BS-(len(y_train)%BS)]])
+
+# x_test = x_test + x_test[0:len(x_test)%BS]
+x_test = np.concatenate([x_test , x_test[0:BS-(len(x_test)%BS)]])
+# y_test = y_test + y_test[0:len(x_test)%BS]
+y_test = np.concatenate([y_test,y_test[0:BS-(len(y_test)%BS)]])
+
+models = Pointer(output_dim=10, hidden_dim=300, output_length=10, input_shape=(10, 300), batch_size=BS,bidirectional=False)
+# models = Pointer(output_dim=10, hidden_dim=200, output_length=10, input_shape=(10, 200), batch_size=1,bidirectional=False)
 models.compile(loss='mse', optimizer='sgd',metrics = ['accuracy'])
 print models.summary()
-models.fit(x_train, y_train, epochs=10,batch_size=1)
+models.fit(x_train, y_train, epochs=50,batch_size=BS)
 print "Done fitting model"
+loss, acc = models.evaluate(x_test, y_test, batch_size = BS)
 
 
 
@@ -90,3 +123,4 @@ print "Done fitting model"
 	
 
 # tokenizer = Tokenizer()
+	
